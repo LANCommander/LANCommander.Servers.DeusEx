@@ -1,0 +1,27 @@
+#!/bin/sh
+# Start the Deus Ex dedicated server (START_EXE).
+#
+# Runs `DeusEx.exe <map>?game=<class>[?options] -server ini=<DX_INI> log=server.log` from System/
+# under Wine, which is what the game's own Host Game > Dedicated menu does. Server settings live in
+# DX_INI (see the 30-ConfigureDeusEx hook); any START_ARGS are appended.
+set -e
+
+system="${SERVER_ROOT:-/config/Merged}/System"
+
+if [ ! -f "$system/DeusEx.exe" ]; then
+    echo "System/DeusEx.exe not found in ${SERVER_ROOT:-/config/Merged}. Put a Deus Ex install in /config/Server." >&2
+    exit 1
+fi
+
+url="${DX_MAP:-DXMP_Cathedral}"
+[ -z "$DX_GAME_TYPE" ] || url="$url?game=$DX_GAME_TYPE"
+[ -z "$DX_URL_OPTIONS" ] || url="$url?${DX_URL_OPTIONS#\?}"
+
+# Left behind when the server is killed rather than shut down from the console
+rm -f "$system/Running.ini"
+
+echo "Starting: DeusEx.exe $url -server ini=${DX_INI:-Server.ini} log=server.log $*"
+
+# The engine resolves packages and inis relative to its working directory
+export WINE_WORKDIR="$system"
+exec wine-run DeusEx.exe "$url" -server "ini=${DX_INI:-Server.ini}" log=server.log "$@"
